@@ -14,7 +14,8 @@ def main(path):
 	detector = Key_Detector(path)
 	print('BPM: ' + str(detector.GetBPM()))
 	detector.GetSongKey()
-	#detector.ComputeKeyOnTimeLine()
+	detector.ComputeKeyOnTimeLine()
+	detector.CompareSongParameters()
 
 if __name__ == '__main__':
 

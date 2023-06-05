@@ -28,6 +28,11 @@ class Key_Detector(object):
         self.__Init_bpm()
         self.__Init_Chromagram()
 
+    def __Reinit_timeline(self, start, end):
+
+        self.__time_start = start
+        self.__time_end = end
+
     def __Init_bpm(self):
 
         if self.method == 'essentia':
@@ -45,15 +50,12 @@ class Key_Detector(object):
         
         y, sr = librosa.load(self.path_of_song, offset = offset, duration = duration)
         self.__chroma_values = librosa.feature.chroma_stft(y=y,sr=sr)
-        print('Chroma'+'\n')
-        print(len(self.__chroma_values[1]))
-
 
     def __LoadAudioFile(self):
 
         self.audio = es.MonoLoader(filename=self.path_of_song)()
 
-    def __InitTimeLine(self):
+    def __InitTimeLine(self ):
 
         if self.__time_start == None or self.__time_end == None:
             self.__time_start = 0
@@ -121,22 +123,12 @@ class Key_Detector(object):
 
         maj_profile = scipy.stats.zscore(maj_profile)
         min_profile = scipy.stats.zscore(min_profile)
-        print('After Z-scrore: ' + '\n')
-        print(maj_profile)
-        print(min_profile)
-        print('\n')
+
         maj_norm = scipy.linalg.norm(maj_profile)
         min_norm = scipy.linalg.norm(min_profile)
-        print('After norm: ' + '\n')
-        print(maj_profile)
-        print(min_profile)
-        print('\n')
+
         maj_profile = scipy.linalg.circulant(maj_profile)
         min_profile = scipy.linalg.circulant(min_profile)
-        print('After circulant: ' + '\n')
-        print(maj_profile)
-        print(min_profile)
-        print('\n')
 
         pitch_class_dist = self.__chroma_values.sum(axis=1)
 
@@ -171,14 +163,29 @@ class Key_Detector(object):
         prev_coeff = self.coeff_correlation
         time_start = self.__time_start
         for i in range(self.__time_end):
-            #print(i+1)
-            self.__Init_Chromagram(self.__time_start, i+1)
-            self.__Krumhansl_Schmuckler_Algorithm()
+            self.__Init_Chromagram(self.__time_start+i, i+1)
+            self.__Key_Finding_Algorithm()
             print("In timeline from {0} to {1} Key of song is {2} (coeffiecient: {3})".format(time_start, self.__time_start+i+1, prev_key, prev_coeff))
             if (self.key_song != prev_key):
                 prev_key = self.key_song
                 prev_coeff = self.coeff_correlation
                 time_start = self.__time_start + i+1
+
+    def CompareSongParameters(self):
+
+        duration_extractor = es.Duration()
+        parameters = []
+        start = 0
+        step = int(duration_extractor(self.audio) // 1) / 4
+        for i in range(4):
+            self.__Reinit_timeline(int(start), int(start)+int(step))
+            self.__Init_bpm()
+            bpm = self.GetBPM()
+            parameters.append(bpm)
+        if (parameters[0] != parameters[-1]):
+            print("BMP in the begging of song {0}. BPM in the end of song {1}".format(parameters[0], parameters[-1]))
+        else:
+            print("BPM has not been changed during the timeline")
 
     def __PrintKey(self):
 
